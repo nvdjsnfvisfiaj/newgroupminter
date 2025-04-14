@@ -4,8 +4,8 @@ from telethon import TelegramClient, events
 from telethon.tl.types import PeerChannel
 
 # Укажите данные вашего аккаунта
-API_ID = 20909352  # Ваш API ID, полученный с https://my.telegram.org
-API_HASH = "a3be2584a77447cfc0c7d1595076e9dc"  # Ваш API Hash, полученный с https://my.telegram.org
+API_ID = 23476633  # Ваш API ID, полученный с https://my.telegram.org
+API_HASH = "4c10db1a2898cd4d95157e48d37f758c"  # Ваш API Hash, полученный с https://my.telegram.org
 
 # Настройка ID для групп
 SOURCE_GROUP_ID = -1002459101321  # ID исходной группы
