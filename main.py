@@ -1,5 +1,6 @@
 import logging
 import re
+import asyncio
 from telethon import TelegramClient, events
 from telethon.tl.types import PeerChannel
 
@@ -76,14 +77,39 @@ WORD_TO_TOPIC_ID = {
     "Toy Bear": 54,
     "Love Potion": 51,
     "Top Hat": 48,
-    "Neko Helmet": 45
+    "Neko Helmet": 45,
+    "Jack-in-the-Box": 404
 }
 
-# Инициализация клиента Telegram
-client = TelegramClient("user_account", API_ID, API_HASH)
+# Глобальная переменная для хранения клиента
+client = None
+
+def generate_link(word, number):
+    """
+    Генерирует ссылку в формате https://t.me/nft/слово-номер,
+    где пробелы в слове удаляются.
+    """
+    base_url = "https://t.me/nft/"
+    cleaned_word = word.replace(" ", "")  # Убираем пробелы из слова
+    return f"{base_url}{cleaned_word}-{number}"
+
+def add_link_to_message(message):
+    """
+    Добавляет ссылку в первое слово сообщения в формате Markdown.
+    """
+    # Регулярное выражение для поиска "слова" и "номера" в первой строке
+    match = re.search(r"^(🆕 )?(?P<word>[A-Za-z\s]+) #(?P<number>\d+)", message)
+    if match:
+        word = match.group("word").strip()
+        number = match.group("number").strip()
+        link = generate_link(word, number)
+        # Формируем Markdown-ссылку
+        linked_word = f"[{word}]({link})"
+        # Заменяем слово на ссылку в тексте сообщения
+        return message.replace(word, linked_word, 1)
+    return message  # Если паттерн не найден, возвращаем оригинальное сообщение
 
 
-@client.on(events.NewMessage)
 async def handle_messages(event):
     """
     Обрабатывает сообщения из исходной группы и пересылает их в соответствующий топик целевой группы.
@@ -97,10 +123,14 @@ async def handle_messages(event):
                     # Логируем найденное слово и ID топика
                     logging.info(f"Найдено слово: '{word}', пересылаем в топик ID: {topic_id}")
 
+                    # Добавляем ссылку в сообщение
+                    updated_message = add_link_to_message(event.message.message)
+
                     # Пересылаем сообщение в соответствующий топик
                     await client.send_message(
                         entity=PeerChannel(DESTINATION_GROUP_ID),
-                        message=event.message.message,
+                        message=updated_message,
+                        parse_mode="md",  # Используем Markdown для форматирования
                         reply_to=topic_id  # Используем reply_to для указания топика
                     )
                     logging.info(f"Сообщение успешно переслано в топик ID: {topic_id}")
@@ -110,12 +140,40 @@ async def handle_messages(event):
         logging.error(f"Произошла ошибка: {e}")
 
 
+async def restart_client():
+    """
+    Перезапускает клиента Telegram каждые 3 минуты.
+    """
+    global client
+    while True:
+        try:
+            logging.info("Перезапуск клиента Telegram...")
+
+            if client is not None:
+                # Завершаем текущую сессию клиента
+                await client.disconnect()
+                logging.info("Старая сессия клиента завершена.")
+
+            # Создаём новый экземпляр клиента
+            client = TelegramClient("user_account", API_ID, API_HASH)
+            
+            # Регистрируем обработчик сообщений
+            client.add_event_handler(handle_messages, events.NewMessage)
+
+            # Подключаем клиента
+            await client.start()
+            logging.info("Клиент Telegram успешно перезапущен.")
+        
+        except Exception as e:
+            logging.error(f"Произошла ошибка при перезапуске клиента: {e}")
+        
+        await asyncio.sleep(180)  # Ждём 3 минуты перед следующим перезапуском
+
+
 async def main():
     logging.info("Запуск клиента Telegram...")
-    async with client:
-        await client.run_until_disconnected()
+    await restart_client()
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
