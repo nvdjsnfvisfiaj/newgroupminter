@@ -12,8 +12,7 @@ API_HASH = "4c10db1a2898cd4d95157e48d37f758c"  # Ваш API Hash, получен
 SOURCE_GROUP_ID = -1002459101321  # ID исходной группы
 DESTINATION_GROUP_ID = -1002680292174  # ID целевой группы
 ANOTHER_SOURCE_GROUP_ID = -1002251861468  # ID новой исходной группы
-ANOTHER_TOPIC_ID = 644229  # ID топика в новой исходной группе
-FINAL_TOPIC_ID = 5993  # ID целевого топика в целевой группе
+FINAL_TOPIC_ID = 5993  # ID целевого топика для "Easter Egg"
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -157,8 +156,8 @@ async def handle_another_group_messages(event):
     """
     try:
         # Проверяем, что сообщение пришло из новой исходной группы
-        if event.chat_id == ANOTHER_SOURCE_GROUP_ID:
-            logging.info(f"Сообщение из новой группы, топик ID: {ANOTHER_TOPIC_ID}")
+        if event.chat_id == ANOTHER_SOURCE_GROUP_ID and "Easter Egg" in event.message.message:
+            logging.info(f"Сообщение из новой группы содержит 'Easter Egg', пересылаем в топик ID: {FINAL_TOPIC_ID}")
 
             # Чистим сообщение
             cleaned_message = clean_message(event.message.message)
