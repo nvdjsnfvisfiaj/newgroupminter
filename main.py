@@ -78,7 +78,8 @@ WORD_TO_TOPIC_ID = {
     "Love Potion": 51,
     "Top Hat": 48,
     "Neko Helmet": 45,
-    "Jack-in-the-Box": 404
+    "Jack-in-the-Box": 404,
+    "Easter Egg": 5993
 }
 
 # Глобальная переменная для хранения клиента
@@ -167,7 +168,7 @@ async def restart_client():
         except Exception as e:
             logging.error(f"Произошла ошибка при перезапуске клиента: {e}")
         
-        await asyncio.sleep(180)  # Ждём 3 минуты перед следующим перезапуском
+        await asyncio.sleep(3600)  # Ждём 3 минуты перед следующим перезапуском
 
 
 async def main():
