@@ -11,6 +11,9 @@ API_HASH = "4c10db1a2898cd4d95157e48d37f758c"  # Ваш API Hash, получен
 # Настройка ID для групп
 SOURCE_GROUP_ID = -1002459101321  # ID исходной группы
 DESTINATION_GROUP_ID = -1002680292174  # ID целевой группы
+ANOTHER_SOURCE_GROUP_ID = -1002251861468  # ID новой исходной группы
+ANOTHER_TOPIC_ID = 644229  # ID топика в новой исходной группе
+FINAL_TOPIC_ID = 5993  # ID целевого топика в целевой группе
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -110,6 +113,14 @@ def add_link_to_message(message):
         return message.replace(word, linked_word, 1)
     return message  # Если паттерн не найден, возвращаем оригинальное сообщение
 
+def clean_message(message):
+    """
+    Удаляет последние две строки из сообщения.
+    """
+    lines = message.strip().split("\n")
+    # Удаляем последние две строки
+    cleaned_lines = lines[:-2]
+    return "\n".join(cleaned_lines)
 
 async def handle_messages(event):
     """
@@ -140,6 +151,28 @@ async def handle_messages(event):
     except Exception as e:
         logging.error(f"Произошла ошибка: {e}")
 
+async def handle_another_group_messages(event):
+    """
+    Обрабатывает сообщения из новой исходной группы и пересылает их в соответствующий топик целевой группы.
+    """
+    try:
+        # Проверяем, что сообщение пришло из новой исходной группы
+        if event.chat_id == ANOTHER_SOURCE_GROUP_ID:
+            logging.info(f"Сообщение из новой группы, топик ID: {ANOTHER_TOPIC_ID}")
+
+            # Чистим сообщение
+            cleaned_message = clean_message(event.message.message)
+
+            # Пересылаем сообщение в целевой топик
+            await client.send_message(
+                entity=PeerChannel(DESTINATION_GROUP_ID),
+                message=cleaned_message,
+                parse_mode="md",  # Используем Markdown для форматирования
+                reply_to=FINAL_TOPIC_ID  # Указываем целевой топик
+            )
+            logging.info(f"Сообщение успешно переслано в топик ID: {FINAL_TOPIC_ID}")
+    except Exception as e:
+        logging.error(f"Произошла ошибка: {e}")
 
 async def restart_client():
     """
@@ -158,8 +191,9 @@ async def restart_client():
             # Создаём новый экземпляр клиента
             client = TelegramClient("user_account", API_ID, API_HASH)
             
-            # Регистрируем обработчик сообщений
+            # Регистрируем обработчики сообщений
             client.add_event_handler(handle_messages, events.NewMessage)
+            client.add_event_handler(handle_another_group_messages, events.NewMessage)
 
             # Подключаем клиента
             await client.start()
@@ -170,11 +204,9 @@ async def restart_client():
         
         await asyncio.sleep(3600)  # Ждём 3 минуты перед следующим перезапуском
 
-
 async def main():
     logging.info("Запуск клиента Telegram...")
     await restart_client()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
